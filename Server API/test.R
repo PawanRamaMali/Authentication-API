@@ -104,9 +104,18 @@ pr$handle("POST", "/authentication", function (req,
   return(jwt = jwt)
 }, preempt = c("sealr-jwt"))
 
-# define test route without authentication  (exclude "sealr-jwt" filter using preempt)
+# # define test route without authentication  (exclude "sealr-jwt" filter using preempt)
+# pr$handle("GET", "/", function (req, res) {
+#   return("Access to route without authentication was successful.")
+# }, preempt = c("sealr-jwt"))
+
+
 pr$handle("GET", "/", function (req, res) {
-  return("Access to route without authentication was successful.")
+  if (req$PATH_INFO == "/") {
+    req$PATH_INFO <- "/__swagger__/"
+  }
+  forward()
+  
 }, preempt = c("sealr-jwt"))
 
 

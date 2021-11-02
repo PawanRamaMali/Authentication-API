@@ -1,31 +1,20 @@
 library(plumber)
+library(mongolite)
 
-users <- data.frame(
-  id       = integer(),
-  name     = character(),
-  password = character(),
-  stringsAsFactors = FALSE
-)
+mongoUrl <- "mongodb://localhost:27017/admin" 
+#<-admin here is the mongodb database that stores the authentication info
 
-# create test user
-users <- rbind(
-  users,
-  data.frame(
-    id       = 1,
-    user     = "abc@example.com",
-    password = bcrypt::hashpw("12345"),
-    stringsAsFactors = FALSE
-  )
-)
-users <- rbind(
-  users,
-  data.frame(
-    id       = 2,
-    user     = "efg@example.com",
-    password = bcrypt::hashpw("45678"),
-    stringsAsFactors = FALSE
-  )
-)
+# specify your collection
+colname <- "user"
+
+# specify your database
+dbname <- "mongoengine"
+
+# create connection (con)
+con <- mongo(collection = colname, url = mongoUrl, db=dbname)
+
+# count how many records (fyi this is just a test)
+# con$count('{}')
 
 
 #* @apiTitle API Authentication
@@ -33,46 +22,73 @@ users <- rbind(
 #* Log requests
 #* @filter logger
 function(req){
-  print(paste(" REQUEST IS", typeof(req)))
+  #print(paste(" REQUEST IS", typeof(req)))
   cat(as.character(Sys.time()), "-", 
       req$REQUEST_METHOD, req$PATH_INFO, "-", 
       req$HTTP_USER_AGENT, "@", req$REMOTE_ADDR, "\n")
   forward()
 }
 
-#* Route / to /__swagger__
-#* filter route-to-swagger
-function(req) {
-  if (req$PATH_INFO == "/") {
-   # print(paste(" req$PATH_INFO <- /__swagger__"))
-    req$PATH_INFO <- "/__swagger__/"
+
+#* Authenticate Qualisense Login
+#* @serializer json
+#* @post /login
+function(req, res) {
+  
+  if (is.null(req$body$user) | is.null(req$body$password))
+  {
+    return(list(
+      status = "Login Failed",
+      code = 404,
+      message = "Inavalid parameters"
+    ))
   }
   
-  forward()
-}
+  user_name <- req$body$user
+  hashed_password <-req$body$password
+  print(paste0("Username is ",user_name))
 
-#* Echo back the input
-#* @param msg The message to echo
-#* @get /echo
-function(msg = "") {
-  list(msg = paste0("The message is: '", msg, "'"))
-}
-
-#* Plot a histogram
-#* @png
-#* @get /plot
-function() {
-  rand <- rnorm(100)
-  hist(rand)
-}
-
-#* Return the sum of two numbers
-#* @param a The first number to add
-#* @param b The second number to add
-#* @post /sum
-function(a, b) {
-  print(paste("The output is  ",a,b))
-  as.numeric(a) + as.numeric(b)
   
   
+  user_password <- con$find(
+    query = paste0('{"username" : "', user_name, '"}'),
+    fields = '{"password" : true, "_id" : false }',
+    limit = 1
+  )
+ 
+  if (is.null(user_password)){
+    print(paste0("Username  ",user_name," not found in database "))
+    return(list(
+      status = "Login Failed",
+      code = 404,
+      message = "Login Data Not Found"
+    ))
+    
+  }
+  
+  
+  print(paste0("Password is ",user_password))
+  
+  if ( hashed_password == user_password)
+  {
+    
+    
+    return(list(
+      status = "Authentication Successfull",
+      code = 200,
+      message = "Login Success"
+    ))
+  }
+  else
+  {
+    return(list(
+      status = "Login Failed",
+      code = 404,
+      message = "Incorrect Password"
+    ))
+  }
+  
+
+  
+
 }

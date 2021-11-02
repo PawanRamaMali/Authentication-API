@@ -14,7 +14,7 @@ dbname <- "mongoengine"
 con <- mongo(collection = colname, url = mongoUrl, db=dbname)
 
 # count how many records (fyi this is just a test)
-# con$count('{}')
+#con$count('{}')
 
 
 #* @apiTitle API Authentication
@@ -68,6 +68,7 @@ function(req, res) {
   
   
   print(paste0("Password is ",user_password))
+  print(paste0("Hashed Password is ",hashed_password))
   
   if ( hashed_password == user_password)
   {
@@ -89,6 +90,10 @@ function(req, res) {
   }
   
 
-  
+  return(list(
+    status = "Login Failed",
+    code = 404,
+    message = "NOA"
+  ))
 
 }

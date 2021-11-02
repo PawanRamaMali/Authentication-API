@@ -66,6 +66,14 @@ pr$handle("POST", "/authentication", function (req,
     ))
   }
   
+  list(
+    args = req$args,
+    argsQuery = req$argsQuery,
+    argsPath = req$argsPath,
+    argsBody = req$argsBody,
+    body = req$body
+  )
+  
   # find user in database
   index <- match(user, users$user)
   
